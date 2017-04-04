@@ -16,7 +16,7 @@ setup(
         "Flask",
         "requests",
         "python-magic",
-        "beautifulsoup4"
+        "beautifulsoup4",
     ],
     packages=find_packages(),
     include_package_data=True,
@@ -29,8 +29,7 @@ setup(
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ]
 )

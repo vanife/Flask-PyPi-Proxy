@@ -9,9 +9,8 @@ the version of the package to download.
 
 import magic
 from flask import make_response, request, abort
-from flask_pypi_proxy.app import app
-from flask_pypi_proxy.utils import (get_base_path, get_package_path,
-                                    get_md5_for_content)
+from ..app import app
+from ..utils import (get_base_path, get_package_path, get_md5_for_content)
 from os import makedirs
 from os.path import join, exists
 from requests import get, head
@@ -73,10 +72,10 @@ def package(package_type, letter, package_name, package_file):
         if not exists(package_path):
             makedirs(package_path)
 
-        with open(egg_filename, 'w') as egg_file:
+        with open(egg_filename, 'wb') as egg_file:
             egg_file.write(pypi_response.content)
 
-        with open(egg_filename) as egg_file:
+        with open(egg_filename, 'rb') as egg_file:
             filecontent = egg_file.read(-1)
             mimetype = magic.from_file(egg_filename, mime=True)
 

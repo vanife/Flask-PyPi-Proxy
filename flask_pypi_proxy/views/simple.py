@@ -4,8 +4,9 @@
 ''' Gets the list of the packages that can be downloaded.
 '''
 
-import urllib
-import urlparse
+# import urllib
+from urllib import parse as urlparse
+# import urlparse
 from collections import namedtuple
 from os import listdir
 from os.path import join, exists, basename
@@ -14,12 +15,18 @@ from bs4 import BeautifulSoup
 from flask import abort, render_template
 from requests import get
 
-from flask_pypi_proxy.app import app
-from flask_pypi_proxy.utils import (get_package_path, get_base_path,
+from ..app import app
+from ..utils import (get_package_path, get_base_path,
                                     is_private, url_is_egg_file)
 
 
 VersionData = namedtuple('VersionData', ['name', 'md5', 'external_link'])
+
+
+def _exclude_filename(filename):
+    # @TODO: make this configurable
+    fn = filename.lower()
+    return fn.startswith('.')
 
 
 @app.route('/simple/')
@@ -28,7 +35,8 @@ def simple():
     '''
     packages = []
     for filename in listdir(get_base_path()):
-        packages.append(filename)
+        if not _exclude_filename(filename):
+            packages.append(filename)
 
     packages.sort()
     return render_template('simple.html', packages=packages)
@@ -39,23 +47,23 @@ def simple_package(package_name):
     ''' Given a package name, returns all the versions for downloading
     that package.
 
-    If the package doesn't exists, then it will call PyPI (CheeseShop).
+    If the package doesn't exists, then it will call PyPi (CheeseShop).
     But if the package exists in the local path, then it will get all
     the versions for the local package.
 
     This will take into account if the egg is private or if it is a normal
-    egg that was uploaded to PyPI. This is important to take into account
-    the version of the eggs. For example, a project requires requests==1.0.4
-    and another package uses requests==1.0.3. Then the instalation of the
-    second package will fail because it wasn't downloaded and the **requests**
+    egg that was uploaded to PyPi. This is important to take into account
+    the version of the eggs. For example, a proyect requires request==1.0.4
+    and another package uses request==1.0.3. Then the instalation of the
+    second package will fail because it wasn't downloaded an the **request**
     folder only has the 1.0.4 version.
 
     To solve this problem, the system uses 2 different kinds of eggs:
 
     * private eggs: are the eggs that you uploaded to the private repo.
-    * normal eggs: are the eggs that are downloaded from PyPI.
+    * normal eggs: are the eggs that are downloaded from pypi.
 
-    So the normal eggs will always get the simple page from the PyPI repo,
+    So the normal eggs will always get the simple page from the pypi repo,
     will the private eggs will always be read from the filesystem.
 
 
@@ -133,7 +141,7 @@ def simple_package(package_name):
             href = panchor.get('href')
             app.logger.debug('Found the link: %s', href)
             if href.startswith('../../packages/'):
-                # then the package is hosted on PyPI.
+                # then the package is hosted on pypi.
                 pk_name = basename(href)
                 pk_name, md5_data = pk_name.split('#md5=')
                 pk_name = pk_name.replace('#md5=', '')
@@ -142,7 +150,7 @@ def simple_package(package_name):
                 split_data = urlparse.urlsplit(href)
                 absolute_url = urlparse.urljoin(url, split_data.path)
 
-                external_link= urllib.urlencode({'remote': absolute_url})
+                external_link= urlparse.urlencode({'remote': absolute_url})
                 data = VersionData(pk_name, md5_data, external_link)
                 package_versions.append(data)
                 continue
@@ -151,7 +159,7 @@ def simple_package(package_name):
             if parsed.hostname:
                 # then the package had a full path to the file
                 if parsed.hostname == 'pypi.python.org':
-                    # then it is hosted on the PyPI server, so I change
+                    # then it is hosted on the pypi server, so I change
                     # it to make it a relative url
                     pk_name = basename(parsed.path)
                     if '#md5=' in parsed.path:
@@ -161,19 +169,19 @@ def simple_package(package_name):
                         md5_data = ''
 
                     absolute_url = urlparse.urljoin(url, parsed.path)
-                    external_link= urllib.urlencode({'remote': absolute_url})
+                    external_link= urlparse.urlencode({'remote': absolute_url})
                     data = VersionData(pk_name, md5_data, external_link)
                     package_versions.append(data)
 
                 else:
                     # the python package is hosted on another server
-                    # that isn't PyPI. The packages that don't have
-                    # rel=download are links to some pages
+                    # that isn't pypi. The packages that doesn't have
+                    # rel=download, then they are links to some pages
                     if panchor.get('rel') and panchor.get('rel')[0] == 'download':
                         if url_is_egg_file(parsed.path):
                             external_links.add(href)
                         else:
-                            # href points to an external page where the links
+                            # href point to an external page where the links
                             # to download the package will be found
                             if href not in visited_download_pages:
                                 visited_download_pages.add(href)
@@ -185,12 +193,12 @@ def simple_package(package_name):
             existing_value = filter(lambda pv: pv.name == package_version,
                                     package_versions)
             if existing_value:
-                # if the package already exists on PyPI, then
-                # use its version instead of using the one that is
+                # if the package already exists on pypi, then
+                # use it's version instead of using the one that is
                 # hosted on a remote server
                 continue
 
-            external_link = urllib.urlencode({'remote': external_url})
+            external_link = urlparse.urlencode({'remote': external_url})
             data = VersionData(package_version, '', external_link)
             package_versions.append(data)
 
